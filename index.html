@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Modaler</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<header></header>
+<main>
+    <div class="hiddenForm" style="display:none">
+        <form class="form form-first">
+            <input type="text" class="form-input" placeholder="Name">
+            <input type="text" class="form-input" placeholder="Email">
+            <input type="text" class="form-input" placeholder="Phone">
+            <div class="form-row">
+                <button type="button" class="form-button show-form-second">Accept</button>
+                <button type="button" class="form-button form-cancel">Cancel</button>
+            </div>
+        </form>
+        <form class="form form-second">
+            <input type="text" class="form-input" placeholder="Name">
+            <input type="text" class="form-input" placeholder="Email">
+            <input type="text" class="form-input" placeholder="Phone">
+            <div class="form-row">
+                <button type="button" class="form-button show-form-first">Accept</button>
+                <button type="button" class="form-button form-cancel">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+
+    <button class="show-form show-form-first">Show Form</button>
+</main>
+<footer>
+    <script src="js/modaler.js"></script>
+</footer>
+</body>
+</html>

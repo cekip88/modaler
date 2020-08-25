@@ -1,0 +1,35 @@
+body{
+    font-size: 16px;
+    color: #000;
+}
+.form{
+    width: 210px;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+}
+.form-input{
+    margin-bottom: 20px;
+    width: 150px;
+    padding: 10px 30px;
+}
+.form-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.form-button{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45%;
+    height: 30px;
+}
+.form-input,.form-button,.show-form{
+    border: 1px solid #000;
+    background-color: transparent;
+}
+
+.show-form{
+    padding: 10px 20px;
+}
