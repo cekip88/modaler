@@ -7,17 +7,24 @@ class Modaler{
     }
 
     // Главный метод который обрабатывает входящие данные и запускает нужные методы
+    isInner(elem){
+        return elem.tagName == 'MODALINNER';
+    }
     showModal(modalData){
         const _ = this;
-        _.createModalCont();
-        let innerCont = _.createModalInner(modalData);
-        _.modalCont.append(innerCont);
-        _.body.append(_.modalCont);
-        if(modalData.type === 'html'){
-            innerCont.append(document.querySelector(`${modalData.content}`));
-        }
-        if(modalData.closeBtn !== 'false') {
-            if(!modalData.closeBtn) _.createCloseBtn();
+        if(!_.isInner(_.body.querySelector(`${modalData.content}`).parentNode)){
+            _.createModalCont();
+            let innerCont = _.createModalInner(modalData);
+            _.modalCont.append(innerCont);
+            _.body.append(_.modalCont);
+            if(modalData.type === 'html'){
+                innerCont.append(document.querySelector(`${modalData.content}`));
+            }
+            if(modalData.closeBtn !== 'false') {
+                if(!modalData.closeBtn) _.createCloseBtn();
+            }
+        } else {
+            console.log('Модальное окно уже открыто')
         }
     }
 
@@ -34,23 +41,21 @@ class Modaler{
     }
 
     // Создает обертку для модалки
-    createModalInner(data){
+    createModalInner(data={}){
         const _ = this;
-        _.zindex += 1;
-        let padding = 0,
-            zindex = _.zindex,
-            modalInnerCont = document.querySelector(`${data.content}`).parentElement;
+        let modalInnerCont = document.querySelector(`${data.content}`).parentElement;
         _.conts.push(modalInnerCont);
-        if(data.padding) padding = data.padding;
+        let topStr = data.top ? `top: ${data.top};` : '' ;
         let modalInner = _.createHtmlEl('MODALINNER',{'data-conts-number':`${_.conts.length - 1}`},[
             _.createHtmlEl('STYLE',{
                 textContent: `
                     modalinner{
                         display:block;
-                        position:absolute;
-                        z-index:${zindex};
-                        background-color:#fff;
-                        padding:${padding};
+                        position:${data.position ? data.position : 'relative'};
+                        z-index:${_.zindex += 1};
+                        background-color:${data.bgc ? data.bgc : '#fff'};
+                        padding:${data.padding ? data.padding : 0};
+                        ${topStr}
                     }
                 `})
         ]);
@@ -73,6 +78,7 @@ class Modaler{
         if(_.modalCont.childElementCount <= 1) {
             _.modalCont.remove();
             _.zindex = 0;
+            _.conts = [];
         }
     }
 
@@ -108,7 +114,13 @@ class Modaler{
 
 
 let modaler = new Modaler();
-
+/*data.content: принимает HTML объект;
+* data.type: показывает в каком виде пришел content;
+* data.bgc: принимает background-color;
+* data.padding: задает padding у модального окна;
+* data.closeBtn: false - убирает кнопку закрытия, true - задает стандартную кнопку закрытия(по умолчанию), так же принимает HTML объект кнопки закрытия;
+* data.position: relative(по умолчанию), принимает так же absolute;
+* */
 
 
 document.querySelectorAll('.show-form-first').forEach(function (el) {
@@ -117,7 +129,6 @@ document.querySelectorAll('.show-form-first').forEach(function (el) {
         modaler.showModal({
             content: '.form-first',
             type: 'html',
-            padding: 0,
         });
     });
 });
