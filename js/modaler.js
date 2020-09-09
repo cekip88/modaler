@@ -20,6 +20,7 @@ class Modaler extends Lib{
     showLog(){
         //this.log(this)
     }
+
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
     modalCheck(modalData){
         const _ = this;
@@ -31,7 +32,7 @@ class Modaler extends Lib{
         for(let value of _.modals.values()){
             if(modal === value) {
                 check = true;
-                console.log('Модальное окно уже открыто');
+                console.warn('Модальное окно уже открыто');
             }
         }
 
@@ -55,16 +56,19 @@ class Modaler extends Lib{
             content = data.content;
 
         if(!content) {
-            _.log('Ошибка: content не передан','error');
+            _.log('Предупреждение: content не передан','error');
         } else {
             if(type && ((type !== 'html') && (type !== 'string') && (type !== 'object'))) {
-                _.log('Ошибка: Type указан не верно','error');
+                _.log('Предупреждение: Type указан не верно','error');
             } else if ((type === 'object' && (type !== typeof content)) || (type === 'string' && (type !== typeof content)) || (type === 'html' && !document.querySelector(`${content}`))){
-                _.log('Ошибка: Type не соответствует Content')
+                _.log('Предупреждение: Type не соответствует Content')
             } else if(!type){
                 let findedType = typeof content;
                 if(findedType === 'string'){
-                    if(_.body.querySelector(`${content}`)) findedType = 'html'
+                    content.trim();
+                    if(content[0] === '.' || content[0] === '#'){
+                        findedType = 'html';
+                    }
                 }
                 data.type = findedType;
                 answer = true;
@@ -83,6 +87,10 @@ class Modaler extends Lib{
         let modalData = JSON.parse(clickData['data']);
         let check = _.innerDataCheck(modalData);
         modalData = check['modalData'];
+
+        if(!modalData.cascad){
+            _.closeAllModals();
+        }
 
         if(check['check']){
             let checkResult = _.modalCheck(modalData),
@@ -105,7 +113,7 @@ class Modaler extends Lib{
         }
     }
 
-    // Создает контейнер модалки
+    // Создает контейнер модалок
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
@@ -121,25 +129,43 @@ class Modaler extends Lib{
     createModalInner(data= {},name){
         const _ = this;
 
-        let
-            topStr = data.top ? `top: ${data.top};` : '' ,
-            rightStr = data.right ? `right: ${data.right};` : '' ,
-            leftStr = data.left ? `left: ${data.left};` : '' ,
-            bottomStr = data.bottom ? `bottom: ${data.bottom};` : '';
-
         let modalInner = _.createEl('MODALINNER',name,{'inner-name':name});
 
+        if(data.id) modalInner.setAttribute('data-id', data.id);
+
+        let styleText = `
+            modalcont{
+                background-color:${data.contBgc ? data.contBgc : 'rgba(0,0,0,.5)'};
+            }
+            .${modalInner.className}{
+                position:${data.position ? data.position : 'absolute'};
+                z-index:${_.zindex += 1};
+                background-color:${data['background-color'] ? data['background-color'] : '#fff'};
+                box-shadow: ${data['box-shadow'] ? data['box-shadow'] : '0 0 15px rgba(0,0,0,.6)'};
+        `;
+
+        for(let key in data){
+            if(key !== 'content' && key !== 'type' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow'){
+                styleText += `${key}: ${data[key]};`;
+            }
+        }
+
+        styleText+='}';
+
+        if(!data.closeBtn || data.closeBtn == true){
+            styleText += `
+                .closeModal{transition:.35s ease;border:none;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5)}
+                .closeModal:before,.closeModal:after{width:20px;height:2px;background-color:#000;display:block;content:'';}
+                .closeModal:before{transform: rotate(45deg) translate(1.5px,1.5px);}
+                .closeModal:after{transform:rotate(-45deg)}
+                .closeModal:hover{transform:rotate(180deg)}
+            `
+        }
+
         modalInner.append(_.createEl('STYLE','modalStyle',{
-            text:`modalcont{background-color:${data.contBgc ? data.contBgc : 'rgba(0,0,0,.5)'};}
-                .${modalInner.className}{
-                    position:${data.position ? data.position : 'absolute'};
-                    z-index:${_.zindex += 1};
-                    background-color:${data.bgc ? data.bgc : '#fff'};
-                    padding:${data.padding ? data.padding : 0};
-                    ${topStr}${rightStr}${leftStr}${bottomStr};
-                    box-shadow: ${data.shadow ? data.shadow : '0 0 15px rgba(0,0,0,.6)'}
-                }`
+            text: styleText
         }));
+
         return modalInner;
     }
 
@@ -169,17 +195,16 @@ class Modaler extends Lib{
 
     // Создает кнопку закрытия модального окна
     createCloseBtn(data){
+        if(data.closeBtn == false)  return false;
         const _ = this;
-        let closeBtn;
+        let closeButton;
 
-        if(!data.closeBtn){
-            closeBtn =  _.createEl('BUTTON','closeModal',{'data-click-action':`Modaler:closeModal`},[
-                _.createEl('SPAN'),_.createEl('SPAN')
-            ]);
+        if(!data.closeBtn || data.closeBtn == true){
+            closeButton =  _.createEl('BUTTON','closeModal',{'data-click-action':`Modaler:closeModal`});
         } else {
-            console.log('Ошибка: неверные данные переданы для кнопки закрытия');
+            console.warn('Предупреждение: неверные данные переданы для кнопки закрытия');
         }
-        return closeBtn;
+        return closeButton;
     }
 
     // Удаляет со страницы контейнер модалки
@@ -193,13 +218,38 @@ class Modaler extends Lib{
         }
     }
 
+    // Закрывает все модалки
+    closeAllModals(){
+        const _ = this;
+        let modals = document.querySelectorAll('modalInner');
+        modals.forEach(function (el) {
+            _.closeModal(null,null,el.className)
+        })
+    }
+
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
-    closeModal(clickData){
+    // clickData может быть как событием клика так и строкой data-id также и selector-ом
+    closeModal(clickData,dataId,modIn){
         const _ = this;
 
-        let elem = clickData['item'];
-        let modalInner = elem.closest('modalinner');
-        let modalObject;
+        let modalObject,
+            modalInner;
+
+        if(clickData){
+            let elem = clickData['item'];
+            modalInner = elem.closest('modalinner');
+        }
+        if(dataId){
+            let modalInnerArr = _.body.querySelectorAll('modalInner');
+            modalInnerArr.forEach(function (el) {
+                if(el.getAttribute('data-id') === dataId){
+                    modalInner = el;
+                }
+            })
+        }
+        if(modIn){
+            modalInner = document.querySelector(`.${modIn}`)
+        }
 
         for(let i = 0; i < modalInner.children.length; i++){
             let el = modalInner.children[i];
@@ -223,6 +273,12 @@ class Modaler extends Lib{
 }
 
 let modaler = new Modaler();
+
+function closeSecond(){
+    modaler.closeModal(null,'first','modal-0')
+}
+
+document.querySelector('.asd').onclick = closeSecond;
 
 document.querySelector('body').addEventListener('click',function(e){
     e.preventDefault();
