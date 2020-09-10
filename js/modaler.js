@@ -230,26 +230,26 @@ class Modaler extends Lib{
 
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
     // clickData может быть как событием клика так и строкой data-id также и selector-ом
-    closeModal(clickData,dataId,modIn){
+    closeModal(clickData){
         const _ = this;
 
         let modalObject,
             modalInner;
 
-        if(clickData){
+        if(clickData['item']){
             let elem = clickData['item'];
             modalInner = elem.closest('modalinner');
         }
-        if(dataId){
+        if(clickData['data-id']){
             let modalInnerArr = _.body.querySelectorAll('modalInner');
             modalInnerArr.forEach(function (el) {
-                if(el.getAttribute('data-id') === dataId){
+                if(el.getAttribute('data-id') === clickData['data-id']){
                     modalInner = el;
                 }
             })
         }
-        if(modIn){
-            modalInner = document.querySelector(`.${modIn}`)
+        if(clickData['modIn']){
+            modalInner = document.querySelector(`.${clickData['modIn']}`)
         }
 
         for(let i = 0; i < modalInner.children.length; i++){
@@ -276,7 +276,7 @@ class Modaler extends Lib{
 let modaler = new Modaler();
 
 function closeSecond(){
-    modaler.closeModal(null,'first','modal-0')
+    modaler.closeModal({'data-id':'first'})
 }
 
 document.querySelector('.asd').onclick = closeSecond;
