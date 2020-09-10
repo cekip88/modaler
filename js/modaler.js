@@ -22,7 +22,7 @@ class Modaler extends Lib{
     }
 
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
-    modalCheck(modalData){
+    modalOpenedCheck(modalData){
         const _ = this;
 
         let check = false,
@@ -88,15 +88,16 @@ class Modaler extends Lib{
         let check = _.innerDataCheck(modalData);
         modalData = check['modalData'];
 
-        if(!modalData.cascad){
-            _.closeAllModals();
-        }
-
         if(check['check']){
-            let checkResult = _.modalCheck(modalData),
+            let checkResult = _.modalOpenedCheck(modalData),
                 name = checkResult[1];
 
             if(!checkResult[0]){
+
+                if(!modalData.cascad){
+                    _.closeAllModals();
+                }
+
                 _.createModalCont();
                 _.body.append(_.modalCont);
 
