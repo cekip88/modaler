@@ -33,3 +33,7 @@ body{
 .show-form{
     padding: 10px 20px;
 }
+
+img{
+    max-width: 100%;
+}
