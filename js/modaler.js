@@ -9,17 +9,14 @@ class Modaler extends Lib{
         _.zindex = 0;
         _.conts = [];
         _.openedModals = new Map();
-        _.openedModals.set('int',0);
+        _.int = 0;
         _.allModals = [];
         _.modalCont = '';
-
+        _.gsap = gsap;
         MainEventBus.add('Modaler','showModal', _.showModal.bind(_));
         MainEventBus.add('Modaler','closeModal', _.closeModal.bind(_));
-        MainEventBus.add('Modaler','log',_.showLog.bind(_));
+        MainEventBus.add('Modaler','closeAllModals', _.closeAllModals.bind(_));
 
-    }
-    showLog(){
-        //this.log(this)
     }
 
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
@@ -38,9 +35,9 @@ class Modaler extends Lib{
         }
 
         if(!check){
-            name = 'modal-' + _.openedModals.get('int');
+            name = 'modal-' + _.int;
             _.openedModals.set(name, modal);
-            _.openedModals.set('int',_.openedModals.get('int') + 1);
+            _.int += 1;
         }
 
         let answer = [check];
@@ -57,12 +54,12 @@ class Modaler extends Lib{
             content = data.content;
 
         if(!content) {
-            _.log('Предупреждение: content не передан','error');
+            console.warn('Предупреждение: content не передан','error');
         } else {
             if(type && ((type !== 'html') && (type !== 'string') && (type !== 'object'))) {
-                _.log('Предупреждение: Type указан не верно','error');
+                console.warn('Предупреждение: Type указан не верно','error');
             } else if ((type === 'object' && (type !== typeof content)) || (type === 'string' && (type !== typeof content)) || (type === 'html' && !document.querySelector(`${content}`))){
-                _.log('Предупреждение: Type не соответствует Content')
+                console.warn('Предупреждение: Type не соответствует Content')
             } else if(!type){
                 let findedType = typeof content;
                 if(findedType === 'string'){
@@ -80,9 +77,6 @@ class Modaler extends Lib{
         }
         return {check : answer, modalData : data};
     }
-
-    // Проверяет была ли данная модалка уже открыта, если да то открывает ее повторно
-
 
     // Главный метод который обрабатывает входящие данные и запускает нужные методы
     showModal(clickData){
@@ -120,25 +114,26 @@ class Modaler extends Lib{
                         let closeBtn = _.createCloseBtn(modalData);
                         if(closeBtn) modalInner.append(closeBtn);
                     }
-
                     _.allModals.push({'inner':modalInner,'data':modalData});
                 } else {
-                    modalInner = savedModal['inner']
+                    modalInner = savedModal['inner'];
+                    modalInner.setAttribute('inner-name',`${name}`)
                 }
-                _.modalCont.append(modalInner);
                 _.modalInnerFilling({'inner':modalInner,'data':modalData});
+                _.modalCont.append(modalInner);
+                _.animationStart(modalInner,{from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(1.7)'}})
             }
         }
-        console.log(_.openedModals)
     }
 
     // Создает контейнер модалок
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{},[
+            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeAllModals'},[
                 _.createEl('STYLE',null,{
-                    'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}`
+                    'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+                                button{cursor:pointer}`
                 })
             ]);
         }
@@ -154,7 +149,7 @@ class Modaler extends Lib{
             modalcont{
                 background-color:${data.contBgc ? data.contBgc : 'rgba(0,0,0,.5)'};
             }
-            .${modalInner.className} img{
+            .${modalInner.className}>img{
                 display:block;
             }
             
@@ -164,8 +159,9 @@ class Modaler extends Lib{
                 background-color:${data['background-color'] ? data['background-color'] : '#fff'};
                 box-shadow: ${data['box-shadow'] ? data['box-shadow'] : '0 0 15px rgba(0,0,0,.6)'};
         `;
+
         for(let key in data){
-            if(key !== 'content' && key !== 'type' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn'){
+            if(key !== 'content' && key !== 'type' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
                 styleText += `${key}: ${data[key]};`;
             }
         }
@@ -190,6 +186,7 @@ class Modaler extends Lib{
         return modalInner;
     }
 
+    // Наполняет модалку контентом
     modalInnerFilling(data){
         const _ = this;
 
@@ -221,6 +218,16 @@ class Modaler extends Lib{
         }
     }
 
+    // Задает анимацию открытия модалки
+    animationStart(selector,params){
+        this.gsap.fromTo(selector,params.from,params.to);
+    }
+
+    // Задает анимацию закрытия модалки
+    animationEnd(selector,params={}){
+        this.gsap.to(selector,params);
+    }
+
     // Создает кнопку закрытия модального окна
     createCloseBtn(data){
         const _ = this;
@@ -244,7 +251,7 @@ class Modaler extends Lib{
             _.modalCont.remove();
             _.zindex = 0;
             _.conts = [];
-            _.openedModals.set('int',0)
+            _.int = 0;
         }
     }
 
@@ -259,7 +266,7 @@ class Modaler extends Lib{
 
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
     // clickData может быть как событием клика так и selector-ом
-    closeModal(clickData){
+    async closeModal(clickData){
         const _ = this;
 
         let modalObject,
@@ -270,7 +277,7 @@ class Modaler extends Lib{
             modalInner = elem.closest('modalinner');
         }
         if(clickData['selector']){
-            modalInner = document.querySelector(`${clickData['selector']}`)
+            modalInner = _.modalCont.querySelector(`${clickData['selector']}`)
         }
 
         for(let i = 0; i < modalInner.children.length; i++){
@@ -281,19 +288,17 @@ class Modaler extends Lib{
         }
 
         let modalsName = modalInner.getAttribute('inner-name');
-        console.log(modalsName);
         _.openedModals.delete(modalsName);
 
-        if(modalInner.getAttribute('data-conts-number')){
-            let modalObjectCont = _.conts[modalInner.getAttribute('data-conts-number')];
-            modalObjectCont.append(modalObject);
-        } else modalObject.remove();
-
-        modalInner.remove();
-        _.removeModalCont();
-        console.log(_.openedModals)
+        _.animationEnd(modalInner,{opacity:0,scale:.8,duration: .5,ease:'back.in(4)',onComplete:function () {
+            if(modalInner.getAttribute('data-conts-number')){
+                let modalObjectCont = _.conts[modalInner.getAttribute('data-conts-number')];
+                modalObjectCont.append(modalObject);
+            } else modalObject.remove();
+            modalInner.remove();
+            _.removeModalCont();
+        }});
     }
-
 }
 
 let modaler = new Modaler();
