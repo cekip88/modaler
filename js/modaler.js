@@ -94,7 +94,9 @@ class Modaler extends Lib{
             if(!checkOpened[0]){
 
                 if(!modalData.cascad){
-                    _.closeAllModals();
+                    if(_.openedModals.length > 0){
+                        _.closeAllModals();
+                    }
                 }
 
                 _.createModalCont();
@@ -121,7 +123,7 @@ class Modaler extends Lib{
                 }
                 _.modalInnerFilling({'inner':modalInner,'data':modalData});
                 _.modalCont.append(modalInner);
-                _.animationStart(modalInner,{from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(1.7)'}})
+                _.animationStart(modalInner,{from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(4)'}})
             }
         }
     }
@@ -258,10 +260,12 @@ class Modaler extends Lib{
     // Закрывает все модалки
     closeAllModals(){
         const _ = this;
-        let modals = document.querySelectorAll('modalInner');
-        modals.forEach(function (el) {
-            _.closeModal({'selector':`.${el.className}`})
-        })
+        if(_.modalCont){
+            _.openedModals.forEach(function (el) {
+                let item = _.modalCont.querySelector(`${el}`);
+                _.closeModal({'item':item})
+            })
+        }
     }
 
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
@@ -276,8 +280,10 @@ class Modaler extends Lib{
             let elem = clickData['item'];
             modalInner = elem.closest('modalinner');
         }
-        if(clickData['selector']){
-            modalInner = _.modalCont.querySelector(`${clickData['selector']}`)
+        if(clickData['id']){
+            _.allModals.forEach(function (el) {
+                if(el['inner'].getAttribute('id') === clickData['id']) modalInner = el['inner'];
+            })
         }
 
         for(let i = 0; i < modalInner.children.length; i++){
@@ -303,10 +309,7 @@ class Modaler extends Lib{
 
 let modaler = new Modaler();
 
-function closeSecond(){
-    modaler.closeModal({'selector':'#first'})
-}
-
+function closeSecond(){modaler.closeModal({'id':'first'})}
 document.querySelector('.asd').onclick = closeSecond;
 
 document.querySelector('body').addEventListener('click',function(e){
