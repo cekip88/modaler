@@ -1,7 +1,8 @@
 import {Lib} from './Lib.js';
 import {MainEventBus} from './MainEventBus.lib.js';
+import { TweenMax,TimelineMax } from './gsap/GreenSock.lib.js'
 
-class Modaler extends Lib{
+class _Modaler extends Lib{
     constructor (){
         super();
         const _ = this;
@@ -12,11 +13,11 @@ class Modaler extends Lib{
         _.int = 0;
         _.allModals = [];
         _.modalCont = '';
-        _.gsap = gsap;
-        MainEventBus.add('Modaler','showModal', _.showModal.bind(_));
-        MainEventBus.add('Modaler','closeModal', _.closeModal.bind(_));
-        MainEventBus.add('Modaler','closeAllModals', _.closeAllModals.bind(_));
-        MainEventBus.add('Modaler','closeLastModal', _.closeLastModal.bind(_));
+        _.gsap = TweenMax;
+        MainEventBus.add('ModalerLib','showModal', _.showModal.bind(_));
+        MainEventBus.add('ModalerLib','closeModal', _.closeModal.bind(_));
+        MainEventBus.add('ModalerLib','closeAllModals', _.closeAllModals.bind(_));
+        MainEventBus.add('ModalerLib','closeLastModal', _.closeLastModal.bind(_));
 
     }
 
@@ -133,7 +134,7 @@ class Modaler extends Lib{
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeLastModal'},[
+            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'ModalerLib:closeLastModal'},[
                 _.createEl('STYLE',null,{
                     'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
                                 button{cursor:pointer}`
@@ -324,10 +325,7 @@ class Modaler extends Lib{
     }
 }
 
-let modaler = new Modaler();
-
-function closeSecond(){modaler.closeModal({'id':'first'})}
-document.querySelector('.asd').onclick = closeSecond;
+export const Modaler = new _Modaler();
 
 document.querySelector('body').addEventListener('click',function(e){
     e.preventDefault();

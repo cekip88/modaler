@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Modaler</title>
+    <title>ModalerLib</title>
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -15,8 +15,8 @@
             <input type="text" class="form-input" placeholder="Email">
             <input type="text" class="form-input" placeholder="Phone">
             <div class="form-row">
-                <button type="button" class="form-button" data-click-action="Modaler:showModal" data-object='{"content":".form-second","padding":"50px","bottom":"0","cascad":true,"append":false}'>Accept</button>
-                <button type="button" class="form-button asd">Cancel</button>
+                <button type="button" class="form-button" data-click-action="ModalerLib:showModal" data-object='{"content":".form-second","padding":"50px","bottom":"0","cascad":true,"append":false}'>Accept</button>
+                <button type="button" class="form-button" data-click-action="ModalerLib:closeModal">Cancel</button>
             </div>
         </form>
         <form class="form form-second">
@@ -24,17 +24,16 @@
             <input type="text" class="form-input" placeholder="Email">
             <input type="text" class="form-input" placeholder="Phone">
             <div class="form-row">
-                <button type="button" class="form-button" data-click-action="Modaler:showModal" data-object='{"content":"<img src=img/batman.jpg>","max-width":"500px"}'>Accept</button>
-                <button type="button" class="form-button" data-click-action="Modaler:closeModal">Cancel</button>
+                <button type="button" class="form-button" data-click-action="ModalerLib:showModal" data-object='{"content":"<img src=img/batman.jpg>","max-width":"500px"}'>Accept</button>
+                <button type="button" class="form-button" data-click-action="ModalerLib:closeModal">Cancel</button>
             </div>
         </form>
     </div>
 
-    <button class="show-form" data-click-action="Modaler:showModal" data-object='{"content":".form-first","id":"first"}'>Show Form</button>
+    <button class="show-form" data-click-action="ModalerLib:showModal" data-object='{"content":".form-first","id":"first"}'>Show Form</button>
 </main>
 <footer>
-    <script src="js/modaler.js" type="module"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.5.1/gsap.min.js"></script>
+    <script src="js/modaler.lib.js" type="module"></script>
 </footer>
 </body>
 </html>
