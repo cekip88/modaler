@@ -16,6 +16,7 @@ class Modaler extends Lib{
         MainEventBus.add('Modaler','showModal', _.showModal.bind(_));
         MainEventBus.add('Modaler','closeModal', _.closeModal.bind(_));
         MainEventBus.add('Modaler','closeAllModals', _.closeAllModals.bind(_));
+        MainEventBus.add('Modaler','closeLastModal', _.closeLastModal.bind(_));
 
     }
 
@@ -28,7 +29,7 @@ class Modaler extends Lib{
             modal = modalData.content;
 
         for(let value of _.openedModals.values()){
-            if(modal === value) {
+            if(modal === value['content']) {
                 check = true;
                 console.warn('Модальное окно уже открыто');
             }
@@ -36,8 +37,6 @@ class Modaler extends Lib{
 
         if(!check){
             name = 'modal-' + _.int;
-            _.openedModals.set(name, modal);
-            _.int += 1;
         }
 
         let answer = [check];
@@ -94,9 +93,7 @@ class Modaler extends Lib{
             if(!checkOpened[0]){
 
                 if(!modalData.cascad){
-                    if(_.openedModals.length > 0){
-                        _.closeAllModals();
-                    }
+                    _.closeAllModals();
                 }
 
                 _.createModalCont();
@@ -121,6 +118,10 @@ class Modaler extends Lib{
                     modalInner = savedModal['inner'];
                     modalInner.setAttribute('inner-name',`${name}`)
                 }
+
+                _.openedModals.set(name, {'inner':modalInner,'content':modalData.content});
+                _.int += 1;
+
                 _.modalInnerFilling({'inner':modalInner,'data':modalData});
                 _.modalCont.append(modalInner);
                 _.animationStart(modalInner,{from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(4)'}})
@@ -132,7 +133,7 @@ class Modaler extends Lib{
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeAllModals'},[
+            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeLastModal'},[
                 _.createEl('STYLE',null,{
                     'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
                                 button{cursor:pointer}`
@@ -171,7 +172,7 @@ class Modaler extends Lib{
 
         if(!data.closeBtn || data.closeBtn == true){
             styleText += `
-                .closeModal{transition:.35s ease;border:none;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5)}
+                .closeModal{transition:.35s ease;border:none;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5);outline:0;}
                 .closeModal:before,.closeModal:after{width:20px;height:2px;background-color:#000;display:block;content:'';}
                 .closeModal:before{transform: rotate(45deg) translate(1.5px,1.5px);}
                 .closeModal:after{transform:rotate(-45deg)}
@@ -260,17 +261,33 @@ class Modaler extends Lib{
     // Закрывает все модалки
     closeAllModals(){
         const _ = this;
-        if(_.modalCont){
-            _.openedModals.forEach(function (el) {
-                let item = _.modalCont.querySelector(`${el}`);
-                _.closeModal({'item':item})
-            })
+        if(_.openedModals.size > 0){
+            for(let value of _.openedModals.values()){
+                _.closeModal({'item':value['inner']})
+            }
         }
+    }
+
+    // Закрывает последнее открытое окно
+    closeLastModal(){
+        const _ = this;
+
+        let max = 0;
+        for(let value of _.openedModals.values()){
+            let cls = value['inner'].className;
+            cls = cls.split('-');
+            let integer = cls[cls.length - 1];
+            if(integer > max){
+                max = integer;
+            }
+        }
+        let lastModal = _.openedModals.get(`modal-${max}`);
+        _.closeModal({'item':lastModal['inner']})
     }
 
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
     // clickData может быть как событием клика так и selector-ом
-    async closeModal(clickData){
+    closeModal(clickData){
         const _ = this;
 
         let modalObject,
