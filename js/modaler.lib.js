@@ -7,6 +7,7 @@ class _Modaler extends Lib{
         super();
         const _ = this;
         _.body = document.querySelector('body');
+        _.modalerAppendPlace = document.querySelector('body');
         _.zindex = 0;
         _.conts = [];
         _.openedModals = new Map();
@@ -14,43 +15,35 @@ class _Modaler extends Lib{
         _.allModals = [];
         _.modalCont = '';
         _.gsap = TweenMax;
-        MainEventBus.add('ModalerLib','showModal', _.showModal.bind(_));
-        MainEventBus.add('ModalerLib','closeModal', _.closeModal.bind(_));
-        MainEventBus.add('ModalerLib','closeAllModals', _.closeAllModals.bind(_));
-        MainEventBus.add('ModalerLib','closeLastModal', _.closeLastModal.bind(_));
+        _.libName = "Modaler";
+        MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
+        MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
+        MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
+        MainEventBus.add(_.libName,'closeLastModal', _.closeLastModal.bind(_));
 
     }
 
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
-    modalOpenedCheck(modalData){
+    modalOpenedCheck(content){
         const _ = this;
 
-        let check = false,
-            name,
-            modal = modalData.content;
+        let check = false;
 
         for(let value of _.openedModals.values()){
-            if(modal === value['content']) {
+            if(content === value['content']) {
                 check = true;
                 console.warn('Модальное окно уже открыто');
             }
         }
 
-        if(!check){
-            name = 'modal-' + _.int;
-        }
-
-        let answer = [check];
-        if(name) answer.push(name);
-
-        return answer;
+        return check;
     }
 
     // Проверяет контент и тип на соответствие
     innerDataCheck(data){
         const _ = this;
         let answer = false;
-        let type = data.type,
+        let type = data.contentType = data.type,
             content = data.content;
 
         if(!content) {
@@ -68,7 +61,7 @@ class _Modaler extends Lib{
                         findedType = 'html';
                     }
                 }
-                data.type = findedType;
+                data.contentType = data.type = findedType;
                 answer = true;
             } else {
                 answer = true;
@@ -79,41 +72,37 @@ class _Modaler extends Lib{
     }
 
     // Главный метод который обрабатывает входящие данные и запускает нужные методы
-    showModal(clickData){
+    showModal(rawData){
         const _ = this;
 
-        let modalData = JSON.parse(clickData['data']),
-            checkData = _.innerDataCheck(modalData),
-            modalInner;
+        let modalData;
+        if(typeof rawData['data'] === 'string'){
+            modalData = JSON.parse(rawData['data'])
+        } else {
+            modalData = rawData;
+        }
+
+        let checkData = _.innerDataCheck(modalData);
         modalData = checkData['modalData'];
 
         if(checkData['check']){
-            let checkOpened = _.modalOpenedCheck(modalData),
-                name = checkOpened[1];
+            let checkOpened = _.modalOpenedCheck(modalData.content);
 
-            if(!checkOpened[0]){
+            if(!checkOpened){
 
-                if(!modalData.cascad){
-                    _.closeAllModals();
-                }
+                if(!modalData['cascad']) _.closeAllModals();
 
                 _.createModalCont();
-                _.body.append(_.modalCont);
+                _.modalerAppendPlace.append(_.modalCont);
 
-                let savedModal = false;
-                _.allModals.forEach(function (el) {
-                    let data = el['data'];
-                    if(data['content'] === modalData.content){
-                        savedModal = el;
-                    }
-                });
+                let
+                    savedModal = _.modalExistCheck(modalData),
+                    modalInner,
+                    name = 'modal-' + _.int;
 
                 if(!savedModal){
                     modalInner = _.createModalInner(modalData,name);
-                    if(modalData.closeBtn !== false){
-                        let closeBtn = _.createCloseBtn(modalData);
-                        if(closeBtn) modalInner.append(closeBtn);
-                    }
+                    _.createCloseBtn(modalData,modalInner);
                     _.allModals.push({'inner':modalInner,'data':modalData});
                 } else {
                     modalInner = savedModal['inner'];
@@ -129,12 +118,26 @@ class _Modaler extends Lib{
             }
         }
     }
+    // Проверяет создан ли modalInner
+    modalExistCheck(modalData){
+        const _ = this;
+
+        let savedModal = false;
+        _.allModals.forEach(function (el) {
+            let data = el['data'];
+            if(data['content'] === modalData.content){
+                savedModal = el;
+            }
+        });
+
+        return savedModal;
+    }
 
     // Создает контейнер модалок
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'ModalerLib:closeLastModal'},[
+            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeLastModal'},[
                 _.createEl('STYLE',null,{
                     'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
                                 button{cursor:pointer}`
@@ -165,7 +168,7 @@ class _Modaler extends Lib{
         `;
 
         for(let key in data){
-            if(key !== 'content' && key !== 'type' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
+            if(key !== 'content' && key !== 'type' && key !== 'contentType' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
                 styleText += `${key}: ${data[key]};`;
             }
         }
@@ -173,7 +176,7 @@ class _Modaler extends Lib{
 
         if(!data.closeBtn || data.closeBtn == true){
             styleText += `
-                .closeModal{transition:.35s ease;border:none;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5);outline:0;}
+                .closeModal{transition:.35s ease;border:none;z-index:10;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5);outline:0;}
                 .closeModal:before,.closeModal:after{width:20px;height:2px;background-color:#000;display:block;content:'';}
                 .closeModal:before{transform: rotate(45deg) translate(1.5px,1.5px);}
                 .closeModal:after{transform:rotate(-45deg)}
@@ -197,10 +200,10 @@ class _Modaler extends Lib{
         let modalInner = data['inner'],
             modalData = data['data'];
 
-        if (modalData.type === 'object') {
+        if (modalData.contentType === 'object') {
             modalInner.append(modalData.content);}
 
-        else if (modalData.type === 'html') {
+        else if (modalData.contentType === 'html') {
             let innerParent = document.querySelector(`${modalData.content}`).parentElement;
             if(modalData.append === false){
                 let clone = _.body.querySelector(`${modalData.content}`).cloneNode(true);
@@ -233,19 +236,39 @@ class _Modaler extends Lib{
     }
 
     // Создает кнопку закрытия модального окна
-    createCloseBtn(data){
+    createCloseBtn(data,modalInner){
         const _ = this;
 
-        if(data.closeBtn == false)  return false;
+        if(data['closeBtn'] === false)  return false;
 
         let closeButton;
-        if(!data.closeBtn || data.closeBtn == true){
-            closeButton =  _.createEl('BUTTON','closeModal',{'data-click-action':`Modaler:closeModal`});
-        } else {
-            console.warn('Предупреждение: неверные данные переданы для кнопки закрытия');
+
+        if(!data['closeBtn'] || data['closeBtn'] === true){
+            closeButton = _.createEl('BUTTON','closeModal',{'data-click-action':`${_.libName}:closeModal`});
+            modalInner.append(closeButton);
         }
 
-        return closeButton;
+        else if (data['closeBtn']){
+            if(typeof data['closeBtn'] === 'string'){
+                if(data['closeBtn'][0] === '.'){
+                    closeButton = _.body.querySelector(`${data['closeBtn']}`).cloneNode(true);
+                    closeButton.setAttribute('data-click-action',`${_.libName}:closeModal`);
+                    modalInner.append(closeButton);
+                } else{
+                    closeButton = data['closeBtn'];
+                    modalInner.innerHTML += closeButton;
+                    modalInner.children[1].setAttribute('data-click-action',`${_.libName}:closeModal`)
+                }
+            } else if(typeof data['closeBtn'] === 'object'){
+                closeButton = data['closeBtn'];
+                closeButton.setAttribute('data-click-action',`${_.libName}:closeModal`);
+                modalInner.append(closeButton);
+            }
+        }
+
+        else {
+            console.warn('Предупреждение: неверные данные переданы для кнопки закрытия');
+        }
     }
 
     // Удаляет со страницы контейнер модалки
@@ -273,17 +296,24 @@ class _Modaler extends Lib{
     closeLastModal(){
         const _ = this;
 
-        let max = 0;
-        for(let value of _.openedModals.values()){
-            let cls = value['inner'].className;
-            cls = cls.split('-');
-            let integer = cls[cls.length - 1];
-            if(integer > max){
-                max = integer;
+        if(_.openedModals.size > 0){
+
+            let lastOpenedNumber = 0;
+            for(let value of _.openedModals.values()){
+
+                let
+                    cls = value['inner'].className,
+                    clsParts = cls.split('-'),
+                    openedModalNumber = clsParts[clsParts.length - 1];
+
+                if(openedModalNumber > lastOpenedNumber){
+                    lastOpenedNumber = openedModalNumber;
+                }
             }
+
+            let lastModal = _.openedModals.get(`modal-${lastOpenedNumber}`);
+            _.closeModal({'item':lastModal['inner']})
         }
-        let lastModal = _.openedModals.get(`modal-${max}`);
-        _.closeModal({'item':lastModal['inner']})
     }
 
     // Закрывает модальное окно и удаляет контейнер, если все модалки закрыты
