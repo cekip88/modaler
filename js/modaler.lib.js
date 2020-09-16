@@ -1,4 +1,5 @@
 import {Lib} from './Lib.js';
+import {Ctrl} from './Ctrl.js';
 import {MainEventBus} from './MainEventBus.lib.js';
 import { TweenMax,TimelineMax } from './gsap/GreenSock.lib.js'
 
@@ -20,6 +21,7 @@ class _Modaler extends Lib{
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
         MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
         MainEventBus.add(_.libName,'closeLastModal', _.closeLastModal.bind(_));
+        MainEventBus.add(_.libName,'dragNdrop', _.dragNdrop.bind(_));
 
     }
 
@@ -75,7 +77,10 @@ class _Modaler extends Lib{
     showModal(rawData){
         const _ = this;
 
+        let btn = rawData['item'];
+        rawData['data'] = btn.dataset.object;
         let modalData;
+
         if(typeof rawData['data'] === 'string'){
             modalData = JSON.parse(rawData['data'])
         } else {
@@ -118,6 +123,7 @@ class _Modaler extends Lib{
             }
         }
     }
+
     // Проверяет создан ли modalInner
     modalExistCheck(modalData){
         const _ = this;
@@ -150,11 +156,11 @@ class _Modaler extends Lib{
     createModalInner(data= {},name){
         const _ = this;
 
-        let modalInner = _.createEl('MODALINNER',name,{'inner-name':name});
+        let modalInner = _.createEl('MODALINNER',name,{'inner-name':name,'data-click-action':`${_.libName}:dragNdrop`});
 
         let styleText = `
             modalcont{
-                background-color:${data.contBgc ? data.contBgc : 'rgba(0,0,0,.5)'};
+                background-color:${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
             }
             .${modalInner.className}>img{
                 display:block;
@@ -353,21 +359,33 @@ class _Modaler extends Lib{
             _.removeModalCont();
         }});
     }
+
+    dragNdrop(clickData){
+        console.log(clickData);
+    }
 }
 
 export const Modaler = new _Modaler();
 
-document.querySelector('body').addEventListener('click',function(e){
-    e.preventDefault();
+let _Ctrl = new Ctrl(null,null,{
+    container:document.body
+});
+
+
+/*document.querySelector('body').addEventListener('click',function(e){
+    //e.preventDefault();
     let target = e.target;
+  /!*  while(!target.getAttribute('data-click-action')){
+        target = target.parentElement;
+    }*!/
     if(target.hasAttribute('data-click-action')){
         let rAction = target.getAttribute('data-click-action'),
             rawAction = rAction.split(':'),
             component = rawAction[0],
             action = rawAction[1],
             data = target.getAttribute('data-object');
-        MainEventBus.trigger(`${component}`,`log`);
+        //MainEventBus.trigger(`${component}`,`log`);
         MainEventBus.trigger(`${component}`,`${action}`,{'item':target,'event':e, 'data': data ? data : ''})
     }
-});
+});*/
 
