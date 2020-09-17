@@ -128,6 +128,13 @@ export class Ctrl{
             return;
         }
     }
+    dragEndHandler(e){
+        let item = e.target;
+        if( ('dragEndAction' in item.dataset) ){
+            triggerWithEvent({'item':item,'event':e},'dragEndAction');
+            return;
+        }
+    }
     dragOverHandler(e){
         let item = e.target;
         if( ('dragOverAction' in item.dataset) ){
@@ -156,6 +163,13 @@ export class Ctrl{
             return;
         }
     }
+    dragHandler(e){
+        let item = e.target;
+        if( ('dragAction' in item.dataset) ){
+            triggerWithEvent({'item':item,'event':e},'dragAction');
+            return;
+        }
+    }
     outHandler(e){
         let item = e.target;
         if( ('outAction' in item.dataset) ){
@@ -175,6 +189,9 @@ export class Ctrl{
         _.container.addEventListener('keyup',_.keyUpHandler);
         _.container.addEventListener('mouseover',_.overHandler);
         _.container.addEventListener('mouseout',_.outHandler);
+        _.container.addEventListener('drag',_.dragHandler);
+        _.container.addEventListener('dragstart',_.dragStartHandler);
+        _.container.addEventListener('dragend',_.dragEndHandler);
         _.container.addEventListener('dragenter',_.dragEnterHandler);
         _.container.addEventListener('dragleave',_.dragLeaveHandler);
         _.container.addEventListener('dragover',_.dragOverHandler);

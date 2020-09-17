@@ -17,11 +17,15 @@ class _Modaler extends Lib{
         _.modalCont = '';
         _.gsap = TweenMax;
         _.libName = "Modaler";
+        _.x = 0;
+        _.y = 0;
         MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
         MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
         MainEventBus.add(_.libName,'closeLastModal', _.closeLastModal.bind(_));
-        MainEventBus.add(_.libName,'dragNdrop', _.dragNdrop.bind(_));
+        MainEventBus.add(_.libName,'drag', _.drag.bind(_));
+        MainEventBus.add(_.libName,'dragStart', _.dragStart.bind(_));
+        MainEventBus.add(_.libName,'dragEnd', _.dragEnd.bind(_));
 
     }
 
@@ -143,7 +147,7 @@ class _Modaler extends Lib{
     createModalCont(){
         const _ = this;
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : 'Modaler:closeLastModal'},[
+            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : `${_.libName}:closeLastModal`},[
                 _.createEl('STYLE',null,{
                     'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
                                 button{cursor:pointer}`
@@ -156,7 +160,7 @@ class _Modaler extends Lib{
     createModalInner(data= {},name){
         const _ = this;
 
-        let modalInner = _.createEl('MODALINNER',name,{'inner-name':name,'data-click-action':`${_.libName}:dragNdrop`});
+        let modalInner = _.createEl('MODALINNER',name,{'inner-name':name,'data-drag-start-action':`${_.libName}:dragStart`,'data-drag-action':`${_.libName}:drag`,'data-drag-end-action':`${_.libName}:dragEnd`,'draggable':true});
 
         let styleText = `
             modalcont{
@@ -360,8 +364,37 @@ class _Modaler extends Lib{
         }});
     }
 
-    dragNdrop(clickData){
-        console.log(clickData);
+    resetCoords(){
+        this.x = 0;
+        this.y = 0;
+    }
+
+    dragStart(clickData){
+        const _ = this;
+        let item = clickData['item'];
+        let transform = item.style.transform;
+        console.log(transform)
+        if(transform.indexOf('translate') >= 0){
+            let str = transform.substring(transform.indexOf('(') + 1,transform.lastIndexOf(')'));
+            str = str.split(',');
+            _.x = parseInt(str[0]);
+            _.y = parseInt(str[1]);
+        }
+    }
+    drag(clickData){
+        const _ = this;
+        let e = clickData['event'], item = clickData['item'];
+
+        if(!_.x){_.x = e.pageX;}
+        if(!_.y){_.y = e.pageY;}
+        _.gsap.to(item,0,{x:e.pageX- _.x,y:e.pageY - _.y})
+    }
+    dragEnd(clickData){
+        const _ = this;
+        let e = clickData['event'],
+            item = clickData['item'];
+        _.gsap.to(item,0,{x:e.pageX- _.x,y:e.pageY - _.y});
+       // _.resetCoords();
     }
 }
 
