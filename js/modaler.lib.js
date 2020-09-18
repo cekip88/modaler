@@ -395,14 +395,6 @@ class _Modaler extends Lib{
 
         _.gsap.to(item,0,{x:_.coord[name]['trX'] + (e.pageX - _.coord[name]['x']),y:_.coord[name]['trY'] + (e.pageY - _.coord[name]['y'])})
     }
-    /*dragEnd(clickData){
-        const _ = this;
-        let e = clickData['event'],
-            item = clickData['item'];
-
-        let name = item.className;
-        _.gsap.to(item,0,{x:_.coord[name]['trX'] + (e.pageX - _.coord[name]['x']),y:_.coord[name]['trY'] + (e.pageY - _.coord[name]['y'])})
-    }*/
 }
 
 export const Modaler = new _Modaler();
