@@ -29,12 +29,49 @@ class _Modaler extends Lib{
             }
         };
         MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
+
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
         MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
         MainEventBus.add(_.libName,'closeLastModal', _.closeLastModal.bind(_));
+
         MainEventBus.add(_.libName,'drag', _.drag.bind(_));
         MainEventBus.add(_.libName,'dragStart', _.dragStart.bind(_));
         MainEventBus.add(_.libName,'dragEnd', _.drag.bind(_));
+
+        MainEventBus.add(_.libName,'showConfirm', _.showConfirm.bind(_));
+    }
+
+    showConfirm(data){
+        const _ = this;
+        return new Promise(function (resolve) {
+
+            let text = data['test'];
+            let tpl = {
+                el: _.createEl('DIV'),
+                childes:[
+                    {
+                        el:_.createEl('BUTTON','modal-success',{'text':'Yes','data-click-action':`${_.libName}:closeModal`})
+                    },{
+                        el:_.createEl('BUTTON','modal-cancel',{'text':'Cancel','data-click-action':`${_.libName}:closeModal`})
+                    }
+                ]
+            };
+            let layout =  _.createTpl(tpl);
+            let successBtn = layout.querySelector('.modal-success');
+            let cancelBtn = layout.querySelector('.modal-cancel');
+            _.showModal({
+                bgc: false,
+                closeBtn:false,
+                'content': layout
+            });
+            successBtn.addEventListener('click',function (e) {
+                resolve(true);
+            });
+            cancelBtn.addEventListener('click',function (e) {
+                resolve(false);
+            });
+
+        })
 
     }
 
@@ -89,9 +126,10 @@ class _Modaler extends Lib{
     // Главный метод который обрабатывает входящие данные и запускает нужные методы
     showModal(rawData){
         const _ = this;
-
-        let btn = rawData['item'];
-        rawData['data'] = btn.dataset.object;
+        if(rawData['item']){
+            let btn = rawData['item'];
+            rawData['data'] = btn.dataset.object;
+        }
         let modalData;
 
         if(typeof rawData['data'] === 'string'){
@@ -173,7 +211,7 @@ class _Modaler extends Lib{
             _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : `${_.libName}:closeLastModal`},[
                 _.createEl('STYLE',null,{
                     'text' : `
-                        modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+                        modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;display:flex;align-items:center;justify-content:center;}
                         button{cursor:pointer}
                     `
                 })
@@ -194,14 +232,17 @@ class _Modaler extends Lib{
         }
 
         let fixed = 'fixed';
+        let height = '100vh';
         if(data['fixed'] === false){
-            fixed = 'absolute'
+            fixed = 'absolute';
+            height = '100%'
         }
 
         let styleText = `
             modalcont{
                 background-color:${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
                 position: ${fixed};
+                height: ${height};
             }
             .${modalInner.className}>img{
                 display:block;
@@ -439,6 +480,18 @@ let _Ctrl = new Ctrl(null,null,{
     container:document.body
 });
 
+
+let btn = document.querySelector('#btn');
+btn.addEventListener('click',async function (e) {
+    let answer = await MainEventBus.trigger('Modaler','showConfirm',{
+        text:'Чё по чем?'
+    });
+    console.log('ответ получен: ' + answer);
+});
+/*btn.addEventListener('click',async function(e) {
+    let answer = await Modaler.showConfirm();
+    console.log(answer);
+});*/
 
 /*document.querySelector('body').addEventListener('click',function(e){
     //e.preventDefault();
