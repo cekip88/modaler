@@ -24,17 +24,16 @@
             <input type="text" class="form-input" placeholder="Email">
             <input type="text" class="form-input" placeholder="Phone">
             <div class="form-row">
-                <button type="button" class="form-button" data-click-action="Modaler:showModal" data-object='{"content":"<img src=img/batman.jpg>","max-width":"500px"}'>Accept</button>
+                <button type="button" class="form-button" data-click-action="Modaler:showModal" data-object='{"content":"<img src=img/batman.jpg>","animation":"opacity-scale","max-width":"500px"}'>Accept</button>
                 <button type="button" class="form-button" data-click-action="Modaler:closeModal">Cancel</button>
             </div>
         </form>
     </div>
 
-    <button class="show-form" data-click-action="Modaler:showModal" data-object='{"content":".form-first","id":"first","closeBtn":false,"draggable":true}'>Show Form</button>
+    <button class="show-form" data-click-action="Modaler:showModal" data-object='{"content":".form-first","id":"first","closeBtn":false,"draggable":true,"animation":"opacity-scale","preset":"online-consultant"}'>Show Form</button>
 </main>
 <footer>
     <script src="js/modaler.lib.js" type="module"></script>
-    <script src="js/test.js"></script>
 </footer>
 </body>
 </html>

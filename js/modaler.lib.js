@@ -18,6 +18,16 @@ class _Modaler extends Lib{
         _.gsap = TweenMax;
         _.libName = "Modaler";
         _.coord = {};
+        _.presets = {
+            'online-consultant' : {"bgc":false,"position":"fixed","bottom":0,"right":0}
+        };
+        _.animation = {};
+        _.animations = {
+            'opacity-scale': {
+                'start' : {from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(4)'}},
+                'end' : {opacity:0,scale:.7,duration: .5,ease:'back.in(4)'}
+            }
+        };
         MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
         MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
@@ -100,13 +110,16 @@ class _Modaler extends Lib{
 
                 if(!modalData['cascad']) _.closeAllModals();
 
-                _.createModalCont();
-                _.modalerAppendPlace.append(_.modalCont);
-
                 let
                     savedModal = _.modalExistCheck(modalData),
                     modalInner,
                     name = 'modal-' + _.int;
+
+                if(modalData['preset']){
+                    for(let key in _.presets[modalData['preset']]){
+                       modalData[key] = _.presets[modalData['preset']][key];
+                    }
+                }
 
                 if(!savedModal){
                     modalInner = _.createModalInner(modalData,name);
@@ -121,8 +134,19 @@ class _Modaler extends Lib{
                 _.int += 1;
 
                 _.modalInnerFilling({'inner':modalInner,'data':modalData});
-                _.modalCont.append(modalInner);
-                _.animationStart(modalInner,{from:{scale:0.7,opacity:0},to:{scale:1,opacity:1,duration:0.5,ease:'back.out(4)'}})
+
+                if(modalData['bgc'] !== false){
+                    _.createModalCont();
+                    _.modalerAppendPlace.append(_.modalCont);
+                    _.modalCont.append(modalInner);
+                } else {
+                    _.modalerAppendPlace.append(modalInner);
+                }
+
+                if(modalData['animation']){
+                    _.animation[name] = modalData['animation'];
+                    _.animationStart(modalInner,_.animations[_.animation[name]]['start'])
+                }
             }
         }
     }
@@ -148,8 +172,10 @@ class _Modaler extends Lib{
         if(!_.modalCont){
             _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : `${_.libName}:closeLastModal`},[
                 _.createEl('STYLE',null,{
-                    'text' : `modalcont{position:fixed;top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
-                                button{cursor:pointer}`
+                    'text' : `
+                        modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+                        button{cursor:pointer}
+                    `
                 })
             ]);
         }
@@ -167,9 +193,15 @@ class _Modaler extends Lib{
             modalInner.setAttribute('draggable','true');
         }
 
+        let fixed = 'fixed';
+        if(data['fixed'] === false){
+            fixed = 'absolute'
+        }
+
         let styleText = `
             modalcont{
                 background-color:${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
+                position: ${fixed};
             }
             .${modalInner.className}>img{
                 display:block;
@@ -183,13 +215,13 @@ class _Modaler extends Lib{
         `;
 
         for(let key in data){
-            if(key !== 'content' && key !== 'type' && key !== 'contentType' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
+            if(key !== 'content' && key !== 'type' && key !== 'contentType' && key !== 'draggable' && key !== 'bgc' && key !== 'fixed' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
                 styleText += `${key}: ${data[key]};`;
             }
         }
         styleText+='}';
 
-        if(!data.closeBtn || data.closeBtn == true){
+        if(!data['closeBtn'] || data['closeBtn'] === true){
             styleText += `
                 .closeModal{transition:.35s ease;border:none;z-index:10;border-radius:100%;background-color:#fff;width:30px;height:30px;padding:1px 5px 3px;position:absolute;top:-15px;right:-15px;box-shadow: 0 0 3px rgba(0,0,0,.5);outline:0;}
                 .closeModal:before,.closeModal:after{width:20px;height:2px;background-color:#000;display:block;content:'';}
@@ -292,8 +324,6 @@ class _Modaler extends Lib{
         if(_.modalCont.childElementCount <= 1) {
             _.modalCont.remove();
             _.zindex = 0;
-            _.conts = [];
-            _.int = 0;
         }
     }
 
@@ -357,14 +387,20 @@ class _Modaler extends Lib{
         let modalsName = modalInner.getAttribute('inner-name');
         _.openedModals.delete(modalsName);
 
-        _.animationEnd(modalInner,{opacity:0,scale:.8,duration: .5,ease:'back.in(4)',onComplete:function () {
-            if(modalInner.getAttribute('data-conts-number')){
-                let modalObjectCont = _.conts[modalInner.getAttribute('data-conts-number')];
+        let end = function () {
+            if(modalInner.hasAttribute('data-conts-number')){
+                let modalObjectCont = _.conts[modalInner.dataset.contsNumber];
                 modalObjectCont.append(modalObject);
             } else modalObject.remove();
             modalInner.remove();
             _.removeModalCont();
-        }});
+        };
+
+        if(_.animation[modalsName]){
+            _.animations[_.animation[modalsName]]['end']['onComplete'] = end;
+            _.animationEnd(modalInner,_.animations[_.animation[modalsName]]['end']);
+        } else end();
+        delete(_.animation[modalsName]);
     }
 
     dragStart(clickData){

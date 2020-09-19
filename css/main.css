@@ -1,6 +1,7 @@
 body{
     font-size: 16px;
     color: #000;
+    height: 200vh;
 }
 .form{
     width: 210px;
@@ -31,7 +32,12 @@ body{
 }
 
 .show-form{
+    transition: .5s ease;
     padding: 10px 20px;
+}
+.show-form:hover{
+    background-color: #000;
+    color: #fff;
 }
 
 img{
