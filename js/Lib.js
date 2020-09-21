@@ -1,6 +1,8 @@
 export class Lib{
     constructor(){
         const _ = this;
+
+        _.templates = new Map();
     }
 
     /*-------------- Методы очистки ---------------------*/
@@ -74,25 +76,76 @@ export class Lib{
         return element;
     }*/
 
+    deepEqual( param1,param2  ) {
+        const _ = this;
+        let deep = false;
+        if (param1 && param2) {
+            if ((typeof param1 === 'object') && (typeof param2 === 'object')) {
+                let len1 = Object.keys(param1).length,
+                    len2 = Object.keys(param2).length;
+                if (len1 === len2) {
+                    let qual = false;
+                    for (let i = 0; i < len1; i++) {
+                        if (Object.keys(param1)[i] !== Object.keys(param2)[i]) qual = false;
+                        else qual = true;
+                    }
+                    if (qual) {
+                        for (let prop in param1) {
+                            if (param1[prop] && param2[prop]) {
+                                if ((typeof param1[prop] === 'object') && (typeof param2[prop] === 'object')) {
+                                    deep = _.deepQual(param1[prop], param2[prop]);
+                                    if (!deep) break;
+                                } else if (param1[prop] !== param2[prop]) {
+                                    deep = false;
+                                    break;
+                                }
+                            }
+                            deep = true;
+                        }
+                        return deep;
+                    }
+                }
+            } else if(param1 === param2){
+                return true
+            }
+            return false
+        }
+    }
+
+    getTpl(tplName,params={}){
+        const _ = this;
+        if (!tplName) return _[tplName](params);
+        if (_.templates.has(tplName)){
+            return  _.templates.get(tplName);
+        }
+        if (params['save']){
+            _.templates.set(tplName,_[tplName](params));
+            return  _.templates.get(tplName);
+        }
+        return _[tplName](params);
+    }
+
     // Создает HTML элементы
-    createEl(tag,className,data = {},childs = []){
-        let temp = document.createElement(`${tag}`);
-        if(className) temp.className = className;
-        if(data){
-            for(let key in data){
+    el(tag,params = {}){
+        const _ = this;
+        if (!tag) return null;
+        let
+            childes =  params['childes'] ? params['childes'] : null;
+        delete params['childes'];
+        let temp = document.createElement(tag);
+        if(params){
+            for(let key in params){
                 if(key === 'text') {
-                    if(tag === 'INPUT' || tag === 'TEXTAREA') temp.value = data[key];
-                    else temp.textContent = data[key];
-                } else if(key === 'innerHTML') temp.innerHTML = data[key];
-                else temp.setAttribute(`${key}`,`${data[key]}`);
+                    if( (tag === 'INPUT') || (tag === 'TEXTAREA') ) temp.value = params[key];
+                    else temp.textContent = params[key];
+                } else if(key === 'html') temp.innerHTML = params[key];
+                else temp.setAttribute(`${key}`,`${params[key]}`);
             }
         }
-        if(childs) {
-            if(typeof childs === 'object'){
-                childs.forEach(function (el) {
-                    temp.append(el)
-                });
-            }
+        if((childes instanceof  Array) && (childes.length)) {
+            childes.forEach(function (el) {
+                temp.append(el);
+            });
         }
         return temp;
     }

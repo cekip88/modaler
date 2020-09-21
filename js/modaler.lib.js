@@ -19,7 +19,22 @@ class _Modaler extends Lib{
         _.libName = "Modaler";
         _.coord = {};
         _.presets = {
-            'online-consultant' : {"bgc":false,"position":"fixed","bottom":0,"right":0}
+            'online-consultant' : {"bgc":false,"position":"fixed","bottom":'20px',"right":'20px'},
+            'confirm' : {
+                'position':'fixed',
+                'width':'100vw',
+                'height':'100vh',
+                'left':0,
+                'right':0,
+                'top':0,
+                'bottom':0,
+                'background-color':'rgba(0,0,0,0.3)',
+                'display':'flex',
+                'justify-content':'center',
+                'align-items':'center',
+                'closeBtn':false,
+                'cascad':true
+            }
         };
         _.animation = {};
         _.animations = {
@@ -28,6 +43,7 @@ class _Modaler extends Lib{
                 'end' : {opacity:0,scale:.7,duration: .5,ease:'back.in(4)'}
             }
         };
+
         MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
 
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
@@ -41,195 +57,192 @@ class _Modaler extends Lib{
         MainEventBus.add(_.libName,'showConfirm', _.showConfirm.bind(_));
     }
 
-    showConfirm(data){
-        const _ = this;
-        return new Promise(function (resolve) {
-
-            let text = data['test'];
-            let tpl = {
-                el: _.createEl('DIV'),
-                childes:[
-                    {
-                        el:_.createEl('BUTTON','modal-success',{'text':'Yes','data-click-action':`${_.libName}:closeModal`})
-                    },{
-                        el:_.createEl('BUTTON','modal-cancel',{'text':'Cancel','data-click-action':`${_.libName}:closeModal`})
-                    }
-                ]
-            };
-            let layout =  _.createTpl(tpl);
-            let successBtn = layout.querySelector('.modal-success');
-            let cancelBtn = layout.querySelector('.modal-cancel');
-            _.showModal({
-                bgc: false,
-                closeBtn:false,
-                'content': layout
-            });
-            successBtn.addEventListener('click',function (e) {
-                resolve(true);
-            });
-            cancelBtn.addEventListener('click',function (e) {
-                resolve(false);
-            });
-
-        })
-
-    }
-
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
     modalOpenedCheck(content){
         const _ = this;
 
-        let check = false;
-
         for(let value of _.openedModals.values()){
-            if(content === value['content']) {
-                check = true;
-                console.warn('Модальное окно уже открыто');
+
+            if(value['content'] instanceof HTMLElement){
+                if(_.deepEqual(content.textContent,value['content'].textContent)) {
+                    console.log('Модальное окно уже открыто');
+                    return true;
+                }
+            } else {
+                if(_.deepEqual(content,value['content'])) {
+                    console.log('Модальное окно уже открыто');
+                    return true;
+                }
             }
         }
-
-        return check;
+        return false;
     }
 
     // Проверяет контент и тип на соответствие
     innerDataCheck(data){
-        const _ = this;
         let answer = false;
         let type = data.contentType = data.type,
             content = data.content;
 
         if(!content) {
-            console.warn('Предупреждение: content не передан','error');
+            console.log('Предупреждение: content не передан');
         } else {
             if(type && ((type !== 'html') && (type !== 'string') && (type !== 'object'))) {
-                console.warn('Предупреждение: Type указан не верно','error');
-            } else if ((type === 'object' && (type !== typeof content)) || (type === 'string' && (type !== typeof content)) || (type === 'html' && !document.querySelector(`${content}`))){
-                console.warn('Предупреждение: Type не соответствует Content')
-            } else if(!type){
-                let findedType = typeof content;
-                if(findedType === 'string'){
-                    content.trim();
-                    if(content[0] === '.' || content[0] === '#'){
-                        findedType = 'html';
-                    }
-                }
-                data.contentType = data.type = findedType;
-                answer = true;
+                console.log('Предупреждение: Type указан не верно');
+            } else if ((type === 'object' && (type !== typeof content)) || (type === 'string' && (type !== typeof content)) || (type === 'html' && typeof content !== 'string')){
+                console.log('Предупреждение: Type не соответствует Content')
             } else {
                 answer = true;
             }
-
         }
-        return {check : answer, modalData : data};
+
+        return answer;
+    }
+    defineType(data){
+        if(data['type']){
+            return;
+        } else if(!data['type'] && data['contentType']){
+            data['type'] = data['contentType'];
+            return data;
+        } else {
+            let type = typeof data['content'];
+            if(type === 'string'){
+                data['content'].trim();
+                if(data['content'][0] === '.' || data['content'][0] === '#'){
+                    type = 'html';
+                }
+            }
+            data.contentType = data.type = type;
+            return data
+        }
+    }
+
+    getModalParams(data){
+        let modalParams;
+        if(data['content']){
+            modalParams = data;
+        } else {
+            modalParams = JSON.parse(data['item'].dataset.object)
+        }
+        modalParams['name'] = 'modal-' + this.int;
+        return modalParams;
     }
 
     // Главный метод который обрабатывает входящие данные и запускает нужные методы
     showModal(rawData){
         const _ = this;
-        if(rawData['item']){
-            let btn = rawData['item'];
-            rawData['data'] = btn.dataset.object;
-        }
-        let modalData;
 
-        if(typeof rawData['data'] === 'string'){
-            modalData = JSON.parse(rawData['data'])
-        } else {
-            modalData = rawData;
-        }
+        let modalParams = _.getModalParams(rawData);
 
-        let checkData = _.innerDataCheck(modalData);
-        modalData = checkData['modalData'];
+        if(!_.innerDataCheck(modalParams)) return;
+        _.defineType(modalParams);
 
-        if(checkData['check']){
-            let checkOpened = _.modalOpenedCheck(modalData.content);
+        if(_.modalOpenedCheck(modalParams['content'])) return;
 
-            if(!checkOpened){
-
-                if(!modalData['cascad']) _.closeAllModals();
-
-                let
-                    savedModal = _.modalExistCheck(modalData),
-                    modalInner,
-                    name = 'modal-' + _.int;
-
-                if(modalData['preset']){
-                    for(let key in _.presets[modalData['preset']]){
-                       modalData[key] = _.presets[modalData['preset']][key];
-                    }
-                }
-
-                if(!savedModal){
-                    modalInner = _.createModalInner(modalData,name);
-                    _.createCloseBtn(modalData,modalInner);
-                    _.allModals.push({'inner':modalInner,'data':modalData});
-                } else {
-                    modalInner = savedModal['inner'];
-                    modalInner.setAttribute('inner-name',`${name}`)
-                }
-
-                _.openedModals.set(name, {'inner':modalInner,'content':modalData.content});
-                _.int += 1;
-
-                _.modalInnerFilling({'inner':modalInner,'data':modalData});
-
-                if(modalData['bgc'] !== false){
-                    _.createModalCont();
-                    _.modalerAppendPlace.append(_.modalCont);
-                    _.modalCont.append(modalInner);
-                } else {
-                    _.modalerAppendPlace.append(modalInner);
-                }
-
-                if(modalData['animation']){
-                    _.animation[name] = modalData['animation'];
-                    _.animationStart(modalInner,_.animations[_.animation[name]]['start'])
-                }
+        if(modalParams['preset']){
+            for(let key in _.presets[modalParams['preset']]){
+                modalParams[key] = _.presets[modalParams['preset']][key];
             }
+        }
+
+        if(!modalParams['cascad']) _.closeAllModals();
+
+        let modalInner = _.getModalInner(modalParams);
+
+        _.openedModals.set(modalParams['name'],{'inner':modalInner,'content':modalParams['content']});
+
+        _.modalInnerFilling({'inner':modalInner,'data':modalParams});
+        _.addToPage({'inner':modalInner,'data':modalParams});
+
+        _.int += 1;
+        if(modalParams['animation']){
+            _.animation[modalParams['name']] = modalParams['animation'];
+            _.animationStart(modalInner,_.animations[_.animation[modalParams['name']]]['start'])
         }
     }
 
-    // Проверяет создан ли modalInner
-    modalExistCheck(modalData){
+    // Добавляет modalInner на страницу в modalCont или в body в зависимости от настроек
+    addToPage(data){
         const _ = this;
+        let modalParams = data['data'],
+            modalInner = data['inner'];
 
-        let savedModal = false;
-        _.allModals.forEach(function (el) {
-            let data = el['data'];
-            if(data['content'] === modalData.content){
-                savedModal = el;
-            }
-        });
-
-        return savedModal;
+        if(modalParams['bgc'] !== false){
+            _.createModalCont();
+            _.modalerAppendPlace.append(_.modalCont);
+            _.modalCont.append(modalInner);
+        } else {
+            _.modalerAppendPlace.append(modalInner);
+        }
     }
 
     // Создает контейнер модалок
     createModalCont(){
         const _ = this;
+
         if(!_.modalCont){
-            _.modalCont = _.createEl('MODALCONT',null,{'data-click-action' : `${_.libName}:closeLastModal`},[
-                _.createEl('STYLE',null,{
-                    'text' : `
-                        modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;display:flex;align-items:center;justify-content:center;}
-                        button{cursor:pointer}
-                    `
-                })
-            ]);
+            _.modalCont = _.el('MODALCONT',{
+                'data-click-action' : `${_.libName}:closeLastModal`,
+                'childes' : [
+                    _.el('STYLE',{
+                        'text' : `
+                            modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;display:flex;align-items:center;justify-content:center;}
+                            button{cursor:pointer}
+                        `
+                    })
+                ]
+            });
         }
     }
 
-    // Создает обертку для модалки
-    createModalInner(data= {},name){
+    // Проверяет создан ли modalInner или создает его и возвращает
+    getModalInner(modalParams){
         const _ = this;
 
-        let modalInner = _.createEl('MODALINNER',name,{'inner-name':name,'data-click-action':''});
+        let savedModal = false;
+        _.allModals.forEach(function (el) {
+            let data = el['data'];
+            if(data['content'] instanceof HTMLElement){
+                if(_.deepEqual(modalParams['content'].textContent,data['content'].textContent)) {
+                    savedModal = el;
+                }
+            } else {
+                if(_.deepEqual(modalParams['content'],data['content'])) {
+                    savedModal = el;
+                }
+            }
+        });
+
+        let modalInner;
+
+        if(!savedModal){
+            modalInner = _.createModalInner(modalParams);
+            _.createCloseBtn(modalParams,modalInner);
+            _.allModals.push({'inner':modalInner,'data':modalParams});
+        } else {
+            modalInner = savedModal['inner'];
+            modalInner.setAttribute('inner-name',`${modalParams['name']}`);
+        }
+        return modalInner;
+    }
+
+    // Создает обертку для модалки
+    createModalInner(data= {}){
+        const _ = this;
+
+        let modalInner = _.el('MODALINNER',{
+            'class' : data['name'],
+            'inner-name' : data['name'],
+            'data-click-action' : ''
+        });
+
         if(data['draggable'] === true){
             modalInner.setAttribute('data-drag-start-action',`${_.libName}:dragStart`);
             modalInner.setAttribute('data-drag-action',`${_.libName}:drag`);
             modalInner.setAttribute('data-drag-end-action',`${_.libName}:dragEnd`);
             modalInner.setAttribute('draggable','true');
         }
+        delete data['draggable'];
 
         let fixed = 'fixed';
         let height = '100vh';
@@ -240,7 +253,7 @@ class _Modaler extends Lib{
 
         let styleText = `
             modalcont{
-                background-color:${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
+                background-color: ${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
                 position: ${fixed};
                 height: ${height};
             }
@@ -249,15 +262,15 @@ class _Modaler extends Lib{
             }
             
             .${modalInner.className}{
-                position:${data.position ? data.position : 'absolute'};
-                z-index:${_.zindex += 1};
-                background-color:${data['background-color'] ? data['background-color'] : '#fff'};
+                position: ${data['position'] ? data['position'] : 'absolute'};
+                z-index: ${_.zindex += 1};
+                background-color: ${data['background-color'] ? data['background-color'] : '#fff'};
                 box-shadow: ${data['box-shadow'] ? data['box-shadow'] : '0 0 15px rgba(0,0,0,.6)'};
         `;
 
         for(let key in data){
-            if(key !== 'content' && key !== 'type' && key !== 'contentType' && key !== 'draggable' && key !== 'bgc' && key !== 'fixed' && key !== 'position' && key !== 'background-color' && key !== 'box-shadow' && key !== 'id' && key !== 'closeBtn' && key !== 'cascad' && key !== 'append'){
-                styleText += `${key}: ${data[key]};`;
+            if(!_.checkMainProp(key)){
+                styleText += `${key} : ${data[key]};`;
             }
         }
         styleText+='}';
@@ -272,10 +285,11 @@ class _Modaler extends Lib{
             `
         }
 
-        if(data.id) modalInner.setAttribute('id', data.id);
+        if(data['id']) modalInner.setAttribute('id', data['id']);
 
-        modalInner.append(_.createEl('STYLE','modalStyle',{
-            text: styleText
+        modalInner.append(_.el('STYLE',{
+            'text' : styleText,
+            'class' : 'modalStyle'
         }));
 
         return modalInner;
@@ -286,17 +300,17 @@ class _Modaler extends Lib{
         const _ = this;
 
         let modalInner = data['inner'],
-            modalData = data['data'];
+            modalParams = data['data'];
 
-        if (modalData.contentType === 'object') {
-            modalInner.append(modalData.content);}
+        if (modalParams['type'] === 'object') {
+            modalInner.append(modalParams['content']);}
 
-        else if (modalData.contentType === 'html') {
-            let innerParent = document.querySelector(`${modalData.content}`).parentElement;
-            if(modalData.append === false){
-                let clone = _.body.querySelector(`${modalData.content}`).cloneNode(true);
+        else if (modalParams['type'] === 'html') {
+            let innerParent = document.querySelector(`${modalParams['content']}`).parentElement;
+            if(modalParams.append === false){
+                let clone = _.body.querySelector(`${modalParams['content']}`).cloneNode(true);
                 for(let value of _.openedModals.values()){
-                    if(value === _.body.querySelector(`${modalData.content}`)){
+                    if(value === _.body.querySelector(`${modalParams['content']}`)){
                         value = clone;
                     }
                 }
@@ -304,13 +318,36 @@ class _Modaler extends Lib{
             } else {
                 _.conts.push(innerParent);
                 modalInner.setAttribute(`data-conts-number`,`${_.conts.length - 1}`);
-                modalInner.append(_.body.querySelector(`${modalData.content}`));
+                modalInner.append(_.body.querySelector(`${modalParams['content']}`));
             }
         }
 
         else {
-            modalInner.innerHTML += modalData.content;
+            modalInner.innerHTML += modalParams['content'];
         }
+    }
+
+    // Проверяет соответствие свойства на наличие в массиве
+    checkMainProp(prop){
+        let arr = [
+            'box-shadow',
+            'background-color',
+            'position',
+            'fixed',
+            'contBgc',
+            'content',
+            'type',
+            'contentType',
+            'bgc',
+            'animation',
+            'preset',
+            'name',
+            'id',
+            'closeBtn',
+            'cascad',
+            'append'
+        ];
+        return arr.indexOf(prop) >= 0;
     }
 
     // Задает анимацию открытия модалки
@@ -332,7 +369,7 @@ class _Modaler extends Lib{
         let closeButton;
 
         if(!data['closeBtn'] || data['closeBtn'] === true){
-            closeButton = _.createEl('BUTTON','closeModal',{'data-click-action':`${_.libName}:closeModal`});
+            closeButton = _.el('BUTTON',{'data-click-action':`${_.libName}:closeModal`,'class' : 'closeModal'});
             modalInner.append(closeButton);
         }
 
@@ -444,13 +481,66 @@ class _Modaler extends Lib{
         delete(_.animation[modalsName]);
     }
 
+    // Создает окно confirm
+    showConfirm(data){
+        const _ = this;
+        return new Promise(function (resolve) {
+
+            let text = data['text'];
+            let layout = _.el('DIV',{
+                'class':'modal-confirm',
+                'data-click-action':'',
+                'childes':[
+                    _.el('STYLE',{
+                        'text' : `
+                            .modal-confirm{
+                                position:absolute;
+                                background-color:#fff;
+                                display:flex;
+                                flex-wrap:wrap;
+                                justify-content:center;
+                                align-items:center;
+                                padding:20px 30px;
+                            }
+                            .modal-confirm span{
+                                width:100%;
+                                text-align:center;
+                                margin-bottom: 20px;
+                            }
+                            .modal-confirm button{
+                                border:1px solid #000;
+                                background-color:transparent;
+                                padding:10px 20px;
+                                margin: 0 10px;
+                            }`
+                    }),
+                    _.el('SPAN',{'text':text}),
+                    _.el('BUTTON',{'class':'modal-success','text':'OK','data-click-action':`${_.libName}:closeModal`}),
+                    _.el('BUTTON',{'class':'modal-cancel','text':'CANCEL','data-click-action':`${_.libName}:closeModal`})
+            ]});
+            let successBtn = layout.querySelector('.modal-success');
+            let cancelBtn = layout.querySelector('.modal-cancel');
+            _.showModal({
+                'preset' : 'confirm',
+                'content': layout
+            });
+            successBtn.addEventListener('click',function (e) {
+                resolve(true);
+            });
+            cancelBtn.addEventListener('click',function (e) {
+                resolve(false);
+            });
+        })
+
+    }
+
     dragStart(clickData){
         const _ = this;
         let e = clickData['event'];
         let item = clickData['item'];
 
         let data = e.dataTransfer;
-        let img = document.createElement('IMG');
+        let img = _.el('IMG');
         data.setDragImage(img,0,0);
 
         let name = item.className;
@@ -486,7 +576,7 @@ btn.addEventListener('click',async function (e) {
     let answer = await MainEventBus.trigger('Modaler','showConfirm',{
         text:'Чё по чем?'
     });
-    console.log('ответ получен: ' + answer);
+    console.log(answer);
 });
 /*btn.addEventListener('click',async function(e) {
     let answer = await Modaler.showConfirm();
