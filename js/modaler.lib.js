@@ -273,7 +273,24 @@ class _Modaler extends Lib{
                 styleText += `${key} : ${data[key]};`;
             }
         }
+
         styleText+='}';
+
+        if(data['responsive'] && typeof data['responsive'] === "object"){
+            let responsive = data['responsive'] ? data['responsive'] : {};
+            let str = '';
+            for (let key in responsive){
+                let value = responsive[key];
+                str += `
+                    @media screen and (min-width: ${key}px){
+                        .${modalInner.className}{`;
+                for (let k in value){
+                    str += `${k} : ${value[k]};`
+                }
+                str += `}}`
+            }
+            styleText += str;
+        }
 
         if(!data['closeBtn'] || data['closeBtn'] === true){
             styleText += `
@@ -334,6 +351,7 @@ class _Modaler extends Lib{
             'background-color',
             'position',
             'fixed',
+            'responsive',
             'contBgc',
             'content',
             'type',
