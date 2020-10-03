@@ -21,19 +21,24 @@ class _Modaler extends Lib{
         _.presets = {
             'online-consultant' : {"bgc":false,"position":"fixed","bottom":'20px',"right":'20px'},
             'confirm' : {
-                'position':'fixed',
-                'width':'100vw',
-                'height':'100vh',
-                'left':0,
-                'right':0,
-                'top':0,
-                'bottom':0,
-                'background-color':'rgba(0,0,0,0.3)',
-                'display':'flex',
-                'justify-content':'center',
-                'align-items':'center',
                 'closeBtn':false,
-                'cascad':true
+                'cascad':true,
+                'modalInner' : {
+                    'position':'fixed',
+                    'width':'100%',
+                    'height':'100%',
+                    'max-width':'100%',
+                    'left':0,
+                    'right':0,
+                    'top':0,
+                    'bottom':0,
+                    'background-color':'rgba(0,0,0,0.3)',
+                },
+                'inner': {
+                    'display':'flex',
+                    'justify-content':'center',
+                    'align-items':'center',
+                }
             }
         };
         _.animation = {};
@@ -45,6 +50,7 @@ class _Modaler extends Lib{
         };
 
         MainEventBus.add(_.libName,'showModal', _.showModal.bind(_));
+        MainEventBus.add(_.libName,'none', _.none.bind(_));
 
         MainEventBus.add(_.libName,'closeModal', _.closeModal.bind(_));
         MainEventBus.add(_.libName,'closeAllModals', _.closeAllModals.bind(_));
@@ -55,6 +61,11 @@ class _Modaler extends Lib{
         MainEventBus.add(_.libName,'dragEnd', _.drag.bind(_));
 
         MainEventBus.add(_.libName,'showConfirm', _.showConfirm.bind(_));
+    }
+
+    // Ничего не делает
+    none(){
+        return;
     }
 
     // Проверяет есть ли данная модалка в объекте открытых модалок, если нет, то добавляет
@@ -155,8 +166,12 @@ class _Modaler extends Lib{
         _.addToPage({'inner':modalInner,'data':modalParams});
 
         _.int += 1;
-        if(modalParams['animation']){
-            _.animation[modalParams['name']] = modalParams['animation'];
+        if(modalParams['animation'] !== false){
+            if(modalParams['animation']){
+                _.animation[modalParams['name']] = modalParams['animation'];
+            } else if (modalParams['animation'] === undefined){
+                _.animation[modalParams['name']] = 'opacity-scale';
+            }
             _.animationStart(modalInner,_.animations[_.animation[modalParams['name']]]['start'])
         }
     }
@@ -180,13 +195,16 @@ class _Modaler extends Lib{
     createModalCont(){
         const _ = this;
 
+        let wth = '100vw';
+        if(_.body.offsetHeight > window.innerHeight) wth = 'calc(100vw - 16px)';
+
         if(!_.modalCont){
             _.modalCont = _.el('MODALCONT',{
                 'data-click-action' : `${_.libName}:closeLastModal`,
                 'childes' : [
                     _.el('STYLE',{
                         'text' : `
-                            modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;display:flex;align-items:center;justify-content:center;}
+                            modalcont{top:0;left:0;right:0;z-index:10000;width:${wth};display:flex;align-items:center;justify-content:center;}
                             button{cursor:pointer}
                         `
                     })
@@ -233,7 +251,8 @@ class _Modaler extends Lib{
         let modalInner = _.el('MODALINNER',{
             'class' : data['name'],
             'inner-name' : data['name'],
-            'data-click-action' : ''
+            'data-click-action' : `${_.libName}:none`,
+            'childes' : [_.el('INNER')]
         });
 
         if(data['draggable'] === true){
@@ -242,7 +261,6 @@ class _Modaler extends Lib{
             modalInner.setAttribute('data-drag-end-action',`${_.libName}:dragEnd`);
             modalInner.setAttribute('draggable','true');
         }
-        delete data['draggable'];
 
         let fixed = 'fixed';
         let height = '100vh';
@@ -251,6 +269,7 @@ class _Modaler extends Lib{
             height = '100%'
         }
 
+        let styleSubText = '';
         let styleText = `
             modalcont{
                 background-color: ${data['contBgc'] ? data['contBgc'] : 'rgba(0,0,0,.5)'};
@@ -261,7 +280,15 @@ class _Modaler extends Lib{
                 display:block;
             }
             
+            ${'inner'}{
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                display: block;
+            }
+            
             .${modalInner.className}{
+                max-width: calc(100% - 40px);
                 position: ${data['position'] ? data['position'] : 'absolute'};
                 z-index: ${_.zindex += 1};
                 background-color: ${data['background-color'] ? data['background-color'] : '#fff'};
@@ -270,11 +297,24 @@ class _Modaler extends Lib{
 
         for(let key in data){
             if(!_.checkMainProp(key)){
-                styleText += `${key} : ${data[key]};`;
+                let value = data[key];
+                if(typeof value !== 'object' || key === 'modalInner'){
+                    if(key === 'modalInner'){
+                        for (let k in value){
+                            styleText += `${k} : ${value[k]};`
+                        }
+                    } else styleText += `${key} : ${value};`;
+                } else if(typeof value === 'object' && key !== 'modalInner'){
+                    styleSubText += `.${modalInner.className} ${key}{`;
+                    for(let k in value){
+                        styleSubText += `${k} : ${value[k]};`
+                    }
+                    styleSubText += '}'
+                }
             }
         }
 
-        styleText+='}';
+        styleText+=`}${styleSubText}`;
 
         if(data['responsive'] && typeof data['responsive'] === "object"){
             let responsive = data['responsive'] ? data['responsive'] : {};
@@ -317,10 +357,11 @@ class _Modaler extends Lib{
         const _ = this;
 
         let modalInner = data['inner'],
-            modalParams = data['data'];
+            modalParams = data['data'],
+            inner = modalInner.querySelector('inner');
 
         if (modalParams['type'] === 'object') {
-            modalInner.append(modalParams['content']);}
+            inner.append(modalParams['content']);}
 
         else if (modalParams['type'] === 'html') {
             let innerParent = document.querySelector(`${modalParams['content']}`).parentElement;
@@ -331,16 +372,16 @@ class _Modaler extends Lib{
                         value = clone;
                     }
                 }
-                modalInner.append(clone);
+                inner.append(clone);
             } else {
                 _.conts.push(innerParent);
                 modalInner.setAttribute(`data-conts-number`,`${_.conts.length - 1}`);
-                modalInner.append(_.body.querySelector(`${modalParams['content']}`));
+                inner.append(_.body.querySelector(`${modalParams['content']}`));
             }
         }
 
         else {
-            modalInner.innerHTML += modalParams['content'];
+            inner.innerHTML += modalParams['content'];
         }
     }
 
@@ -351,6 +392,7 @@ class _Modaler extends Lib{
             'background-color',
             'position',
             'fixed',
+            'draggable',
             'responsive',
             'contBgc',
             'content',
@@ -475,8 +517,8 @@ class _Modaler extends Lib{
 
         for(let i = 0; i < modalInner.children.length; i++){
             let el = modalInner.children[i];
-            if((el.className !== 'closeModal') && (el.className !== 'styleModal')){
-                modalObject = el;
+            if((el.className !== 'closeModal') && (el.tagName !== 'STYLE')){
+                modalObject = el.children[0];
             }
         }
 
