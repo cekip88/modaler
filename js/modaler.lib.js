@@ -38,6 +38,26 @@ class _Modaler extends Lib{
                     'display':'flex',
                     'justify-content':'center',
                     'align-items':'center',
+                },
+                '.modal-confirm' : {
+                    'position' : 'absolute',
+                    'background-color' : '#fff',
+                    'display' : 'flex',
+                    'flex-wrap' : 'wrap',
+                    'justify-content' : 'center',
+                    'align-items' : 'center',
+                    'padding' : '20px 30px',
+                },
+                '.modal-confirm span' : {
+                    'width' : '100%',
+                    'text-align' : 'center',
+                    'margin-bottom' : '20px',
+                },
+                '.modal-confirm button' : {
+                    'border' : '1px solid #000',
+                    'background-color' : 'transparent',
+                    'padding' : '10px 20px',
+                    'margin' : '0 10px',
                 }
             }
         };
@@ -76,12 +96,12 @@ class _Modaler extends Lib{
 
             if(value['content'] instanceof HTMLElement){
                 if(_.deepEqual(content.textContent,value['content'].textContent)) {
-                    console.log('Модальное окно уже открыто');
+                    //console.log('Модальное окно уже открыто');
                     return true;
                 }
             } else {
                 if(_.deepEqual(content,value['content'])) {
-                    console.log('Модальное окно уже открыто');
+                    //console.log('Модальное окно уже открыто');
                     return true;
                 }
             }
@@ -156,7 +176,7 @@ class _Modaler extends Lib{
             }
         }
 
-        if(!modalParams['cascad']) _.closeAllModals();
+        if(modalParams['cascad'] === false) _.closeAllModals();
 
         let modalInner = _.getModalInner(modalParams);
 
@@ -276,11 +296,10 @@ class _Modaler extends Lib{
                 position: ${fixed};
                 height: ${height};
             }
-            .${modalInner.className}>img{
+            inner>img{
                 display:block;
             }
-            
-            ${'inner'}{
+            inner{
                 width: 100%;
                 height: 100%;
                 overflow: auto;
@@ -294,6 +313,12 @@ class _Modaler extends Lib{
                 background-color: ${data['background-color'] ? data['background-color'] : '#fff'};
                 box-shadow: ${data['box-shadow'] ? data['box-shadow'] : '0 0 15px rgba(0,0,0,.6)'};
         `;
+
+        if((_.body.offsetHeight > window.innerHeight) && (data['closeBtn'] === undefined || data['closeBtn'] === true)) {
+            styleText += `
+                transform: translateX(-16px);
+            `
+        }
 
         for(let key in data){
             if(!_.checkMainProp(key)){
@@ -551,29 +576,6 @@ class _Modaler extends Lib{
                 'class':'modal-confirm',
                 'data-click-action':'',
                 'childes':[
-                    _.el('STYLE',{
-                        'text' : `
-                            .modal-confirm{
-                                position:absolute;
-                                background-color:#fff;
-                                display:flex;
-                                flex-wrap:wrap;
-                                justify-content:center;
-                                align-items:center;
-                                padding:20px 30px;
-                            }
-                            .modal-confirm span{
-                                width:100%;
-                                text-align:center;
-                                margin-bottom: 20px;
-                            }
-                            .modal-confirm button{
-                                border:1px solid #000;
-                                background-color:transparent;
-                                padding:10px 20px;
-                                margin: 0 10px;
-                            }`
-                    }),
                     _.el('SPAN',{'text':text}),
                     _.el('BUTTON',{'class':'modal-success','text':'OK','data-click-action':`${_.libName}:closeModal`}),
                     _.el('BUTTON',{'class':'modal-cancel','text':'CANCEL','data-click-action':`${_.libName}:closeModal`})
@@ -659,4 +661,3 @@ btn.addEventListener('click',async function (e) {
         MainEventBus.trigger(`${component}`,`${action}`,{'item':target,'event':e, 'data': data ? data : ''})
     }
 });*/
-
