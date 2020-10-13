@@ -8,7 +8,7 @@ class _Modaler extends Lib{
         super();
         const _ = this;
         _.body = document.querySelector('body');
-        _.modalerAppendPlace = document.querySelector('body');
+        _.modalerAppendPlace = document.querySelector('core') ? document.querySelector('core') : document.querySelector('body');
         _.zindex = 0;
         _.conts = [];
         _.openedModals = new Map();
@@ -178,6 +178,9 @@ class _Modaler extends Lib{
 
         if(modalParams['cascad'] === false) _.closeAllModals();
 
+        if(!modalParams['scroll']) modalParams['scroll'] = false;
+        modalParams['scroll'] === false ? _.body.style.overflow = 'hidden' : modalParams['scroll'] = true;
+
         let modalInner = _.getModalInner(modalParams);
 
         _.openedModals.set(modalParams['name'],{'inner':modalInner,'content':modalParams['content']});
@@ -215,16 +218,13 @@ class _Modaler extends Lib{
     createModalCont(){
         const _ = this;
 
-        let wth = '100vw';
-        if(_.body.offsetHeight > window.innerHeight) wth = 'calc(100vw - 16px)';
-
         if(!_.modalCont){
             _.modalCont = _.el('MODALCONT',{
                 'data-click-action' : `${_.libName}:closeLastModal`,
                 'childes' : [
                     _.el('STYLE',{
                         'text' : `
-                            modalcont{top:0;left:0;right:0;z-index:10000;width:${wth};display:flex;align-items:center;justify-content:center;}
+                            modalcont{top:0;left:0;right:0;z-index:10000;width:100vw;display:flex;align-items:center;justify-content:center;}
                             button{cursor:pointer}
                         `
                     })
@@ -271,6 +271,7 @@ class _Modaler extends Lib{
         let modalInner = _.el('MODALINNER',{
             'class' : data['name'],
             'inner-name' : data['name'],
+            'data-bg-scroll' : data['scroll'],
             'data-click-action' : `${_.libName}:none`,
             'childes' : [_.el('INNER')]
         });
@@ -302,6 +303,8 @@ class _Modaler extends Lib{
             inner{
                 width: 100%;
                 height: 100%;
+                max-width: 90vw;
+                max-height: 90vh;
                 overflow: auto;
                 display: block;
             }
@@ -313,12 +316,6 @@ class _Modaler extends Lib{
                 background-color: ${data['background-color'] ? data['background-color'] : '#fff'};
                 box-shadow: ${data['box-shadow'] ? data['box-shadow'] : '0 0 15px rgba(0,0,0,.6)'};
         `;
-
-        if((_.body.offsetHeight > window.innerHeight) && (data['closeBtn'] === undefined || data['closeBtn'] === true)) {
-            styleText += `
-                transform: translateX(-16px);
-            `
-        }
 
         for(let key in data){
             if(!_.checkMainProp(key)){
@@ -421,6 +418,7 @@ class _Modaler extends Lib{
             'responsive',
             'contBgc',
             'content',
+            'scroll',
             'type',
             'contentType',
             'bgc',
@@ -564,6 +562,15 @@ class _Modaler extends Lib{
             _.animationEnd(modalInner,_.animations[_.animation[modalsName]]['end']);
         } else end();
         delete(_.animation[modalsName]);
+
+        let bgscroll = true;
+        if(_.openedModals.size){
+            _.openedModals.forEach(function (el) {
+                let scroll = el['inner'].getAttribute('data-bg-scroll');
+                if(scroll === false) bgscroll = false;
+            })
+        }
+        if(bgscroll) _.body.style.overflow = 'auto';
     }
 
     // Создает окно confirm
